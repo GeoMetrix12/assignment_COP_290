@@ -462,28 +462,43 @@ namespace editor{
             qDebug() << "Shape added to canvas.";
         }
         else if(selected_shape_ && is_dragging_ && current_handle_ != HandleType::HANDLE_NONE){
-            std::unique_ptr<ResizeCommand> cmd;
-            bool changed = false;
-            auto *line = dynamic_cast<Line*>(selected_shape_);
-            if(line){
-                if(line->getP1() != original_p1_ || line->getP2() != original_p2_){
-                    changed = true;
-                    cmd = std::make_unique<ResizeCommand>(selected_shape_, original_p1_, original_p2_, line->getP1(), line->getP2());
+            auto* text = dynamic_cast<Text*>(selected_shape_);
+            if(text){
+                int currentSize = text->getFontSize();
+                if(currentSize != original_font_size_){
+                    auto cmd = std::make_unique<PropertyChangeCommand>(
+                        selected_shape_, PropertyChangeCommand::PropertyType::FONT_SIZE, original_font_size_, currentSize);
+                    undo_stack_.push(std::move(cmd));
+                    while(!redo_stack_.empty()){
+                        redo_stack_.pop();
+                    }
                 }
             }
             else{
-                QRectF newBox = selected_shape_->boundBox();
-                if(newBox != original_box_){
-                    changed = true;
-                    cmd = std::make_unique<ResizeCommand>(selected_shape_, original_box_, newBox);
+                std::unique_ptr<ResizeCommand> cmd;
+                bool changed = false;
+                auto *line = dynamic_cast<Line*>(selected_shape_);
+                if(line){
+                    if(line->getP1() != original_p1_ || line->getP2() != original_p2_){
+                        changed = true;
+                        cmd = std::make_unique<ResizeCommand>(selected_shape_, original_p1_, original_p2_, line->getP1(), line->getP2());
+                    }
+                }
+                else{
+                    QRectF newBox = selected_shape_->boundBox();
+                    if(newBox != original_box_){
+                        changed = true;
+                        cmd = std::make_unique<ResizeCommand>(selected_shape_, original_box_, newBox);
+                    }
+                }
+                if(changed && cmd){
+                    undo_stack_.push(std::move(cmd));
+                    while(!redo_stack_.empty()){
+                        redo_stack_.pop();
+                    }
                 }
             }
-            if(changed && cmd){
-                undo_stack_.push(std::move(cmd));
-                while(!redo_stack_.empty()){
-                    redo_stack_.pop();
-                }
-            }
+            notifySelectionUpdate();
         }
         else if(is_changing_radius_ && selected_shape_){
             auto* roundRect = dynamic_cast<RoundedRectangle*>(selected_shape_);
