@@ -6,6 +6,7 @@
 #include "RoundedRectangle.h"
 #include "Text.h"
 #include "Line.h"
+#include "Commands.h"
 #include "Freehand.h"
 #include <QInputDialog>
 #include <QPainter>
@@ -113,10 +114,8 @@ namespace editor{
     void Canvas::cut(){
         if(selected_shape_){
             copy();
-            auto it = std::remove_if(shapes_.begin(), shapes_.end(), [this](const std::unique_ptr<GraphicsObject>& shape){
-                return shape.get() == selected_shape_;
-            });
-            shapes_.erase(it, shapes_.end());
+            auto cmd = std::make_unique<DeleteShapeCommand>(shapes_, selected_shape_);
+            pushCommand(std::move(cmd));
             selected_shape_ = nullptr;
             is_changing_radius_ = false;
             is_dragging_ = false;
@@ -231,6 +230,11 @@ namespace editor{
                 }
             }
             if(current_handle_ != HandleType::HANDLE_NONE){
+                original_box_ = selected_shape_->boundBox();
+                if(line){
+                    original_p1_ = line->getP1();
+                    original_p2_ = line->getP2();
+                }
                 is_dragging_ = true;
                 return;
             }
@@ -433,6 +437,30 @@ namespace editor{
             pushCommand(std::move(cmd));
             temp_shape_ = nullptr;
             qDebug() << "Shape added to canvas.";
+        }
+        else if(selected_shape_ && is_dragging_ && current_handle_ != HandleType::HANDLE_NONE){
+            std::unique_ptr<ResizeCommand> cmd;
+            bool changed = false;
+            auto *line = dynamic_cast<Line*>(selected_shape_);
+            if(line){
+                if(line->getP1() != original_p1_ || line->getP2() != original_p2_){
+                    changed = true;
+                    cmd = std::make_unique<ResizeCommand>(selected_shape_, original_p1_, original_p2_, line->getP1(), line->getP2());
+                }
+            }
+            else{
+                QRectF newBox = selected_shape_->boundBox();
+                if(newBox != original_box_){
+                    changed = true;
+                    cmd = std::make_unique<ResizeCommand>(selected_shape_, original_box_, newBox);
+                }
+            }
+            if(changed && cmd){
+                undo_stack_.push(std::move(cmd));
+                while(!redo_stack_.empty()){
+                    redo_stack_.pop();
+                }
+            }
         }
         else if(is_changing_radius_ && selected_shape_){
             auto* roundRect = dynamic_cast<RoundedRectangle*>(selected_shape_);

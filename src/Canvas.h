@@ -55,6 +55,8 @@ namespace editor {
             QString current_file_;
             HandleType current_handle_ = HandleType::HANDLE_NONE;
             double original_radius_ = 0.0;
+            QRectF original_box_;
+            QPointF original_p1_, original_p2_;
     };
 }
 #endif

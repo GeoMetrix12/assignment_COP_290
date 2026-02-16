@@ -12,6 +12,7 @@ namespace editor {
           bool containsPoint(const QPoint& point) const override;
           void moveBy(const QPoint& delta) override;
           void setRadius(double r) { r_ = r; }
+          void setCenter(const QPointF& center) { cx_ = center.x(); cy_ = center.y(); }
           void setStrokeWidth(int width) override { stroke_width_ = width; }
           void setStrokeColor(const QString& color) override { stroke_color_ = color; }
           void setFillColor(const QString& color) override { fill_color_ = color; }
