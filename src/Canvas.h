@@ -31,6 +31,10 @@ namespace editor {
             bool hasFile() const {return !current_file_.isEmpty();}
             QString getCurrentFile() const { return current_file_; }
             void setCurrentFile(const QString& filename) { current_file_ = filename; }
+            QColor getCurrentStrokeColor() const { return current_color_; }
+            QColor getCurrentFillColor() const { return current_fill_color_; }
+            int getCurrentStrokeWidth() const { return current_stroke_width_; }
+            int getCurrentFontSize() const { return current_font_size_; }
         signals: 
             void selectionChanged(editor::GraphicsObject* shape);        
         protected :

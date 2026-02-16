@@ -68,16 +68,54 @@ void MainWindow::createToolbar() {
         if (!shape) {
             strokeWidthSpinBox->setEnabled(true);
             fontSizeSpinBox->setEnabled(true);
+            strokeColorBtn->setEnabled(true);
+            fillColorBtn->setEnabled(true);
+
+            QColor sColor = canvas_->getCurrentStrokeColor();
+            QColor fColor = canvas_->getCurrentFillColor();
+            int sWidth = canvas_->getCurrentStrokeWidth();
+            int fontSize = canvas_->getCurrentFontSize();
+
+            strokeColorBtn->setStyleSheet(QString("background-color: %1; border: 1px solid gray;").arg(sColor.name()));
+            strokeColorBtn->setStyleSheet(strokeColorBtn->styleSheet() + 
+                QString("color: %1;").arg(sColor.lightness() > 128 ? "black" : "white"));
+
+            fillColorBtn->setStyleSheet(QString("background-color: %1; border: 1px solid gray;").arg(fColor.name()));
+            fillColorBtn->setStyleSheet(fillColorBtn->styleSheet() + 
+                QString("color: %1;").arg(fColor.lightness() > 128 ? "black" : "white"));
+
+            strokeWidthSpinBox->setValue(sWidth);
+            fontSizeSpinBox->setValue(fontSize);
         } 
-        else if (auto* text = dynamic_cast<editor::Text*>(shape)) {
-            fontSizeSpinBox->setEnabled(true);
-            fontSizeSpinBox->setValue(text->getFontSize());
-            strokeWidthSpinBox->setEnabled(false); 
-        } 
-        else {
-            strokeWidthSpinBox->setEnabled(true);
-            strokeWidthSpinBox->setValue(shape->getStrokeWidth());
-            fontSizeSpinBox->setEnabled(false);
+        else{
+            QColor sColor(shape->getStrokeColor());
+            QColor fColor(shape->getFillColor());
+            auto *text = dynamic_cast<editor::Text*>(shape);
+            if (sColor.isValid()) {
+                strokeColorBtn->setStyleSheet(QString("background-color: %1; border: 1px solid gray;").arg(sColor.name()));
+                strokeColorBtn->setStyleSheet(strokeColorBtn->styleSheet() + 
+                    QString("color: %1;").arg(sColor.lightness() > 128 ? "black" : "white"));
+            }
+            if (fColor.isValid()) {
+                fillColorBtn->setStyleSheet(QString("background-color: %1; border: 1px solid gray;").arg(fColor.name()));
+                fillColorBtn->setStyleSheet(fillColorBtn->styleSheet() + 
+                    QString("color: %1;").arg(fColor.lightness() > 128 ? "black" : "white"));
+            }
+            if(text){
+                fontSizeSpinBox->setEnabled(true);
+                fontSizeSpinBox->setValue(text->getFontSize());
+                strokeWidthSpinBox->setEnabled(false);
+                fillColorBtn->setEnabled(false);
+                fillColorBtn->setStyleSheet("background-color: lightgray; color: gray; border: 1px solid gray;");
+                strokeColorBtn->setEnabled(true);
+            }
+            else{
+                strokeWidthSpinBox->setEnabled(true);
+                strokeWidthSpinBox->setValue(shape->getStrokeWidth());
+                fontSizeSpinBox->setEnabled(false); 
+                strokeColorBtn->setEnabled(true);
+                fillColorBtn->setEnabled(true);
+            }
         }
         strokeWidthSpinBox->blockSignals(false);
         fontSizeSpinBox->blockSignals(false);
