@@ -25,6 +25,7 @@ namespace editor{
             int getStrokeWidth() const override { return font_size_; }
             QString getStrokeColor() const override { return color_; }
             QString getFillColor() const override { return color_; }
+            void setFontSize(int size) { font_size_ = size; };
         private:
             double x_, y_;
             QString content_;

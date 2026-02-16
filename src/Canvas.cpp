@@ -231,7 +231,10 @@ namespace editor{
             }
             if(current_handle_ != HandleType::HANDLE_NONE){
                 original_box_ = selected_shape_->boundBox();
-                if(line){
+                if(text){
+                    original_font_size_ = text->getFontSize();
+                }
+                else if(line){
                     original_p1_ = line->getP1();
                     original_p2_ = line->getP2();
                 }
@@ -311,25 +314,23 @@ namespace editor{
                 return;
             }
             else if(freehand || text){
-                QRectF box = selected_shape_->boundBox();
-                if (current_handle_ == HandleType::HANDLE_BOTTOM_RIGHT){
-                    scale = (current_pos.x() - box.left()) / box.width();
-                } 
-                else if (current_handle_ == HandleType::HANDLE_TOP_LEFT){
-                    scale = (box.right() - current_pos.x()) / box.width();
+                double current_width = 0.0;
+                if(current_handle_ == HandleType::HANDLE_TOP_RIGHT || current_handle_ == HandleType::HANDLE_BOTTOM_RIGHT){
+                    current_width = std::abs(current_pos.x() - original_box_.left());
                 }
-                else if (current_handle_ == HandleType::HANDLE_TOP_RIGHT){
-                    scale = (current_pos.x() - box.left()) / box.width();
+                else{
+                    current_width = std::abs(current_pos.x() - original_box_.right());
                 }
-                else if (current_handle_ == HandleType::HANDLE_BOTTOM_LEFT){
-                    scale = (box.right() - current_pos.x()) / box.width();
-                }
-                if(scale > 0.1){
+                double ratio = current_width / original_box_.width();
+                if(ratio > 0.1){
                     if(freehand){
+                        QRectF box = selected_shape_->boundBox();
+                        double scale = (current_pos.x() - box.left()) / box.width();
                         freehand->scalePath(scale, current_handle_);
                     }
                     else if(text){
-                        text->setStrokeWidth(static_cast<int>(text->getFontSize() * scale/5));
+                        int newFontSize = static_cast<int>(original_font_size_ * ratio);
+                        text->setFontSize(newFontSize);
                     }
                 }
             }

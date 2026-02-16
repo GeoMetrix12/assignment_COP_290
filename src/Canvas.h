@@ -57,6 +57,7 @@ namespace editor {
             double original_radius_ = 0.0;
             QRectF original_box_;
             QPointF original_p1_, original_p2_;
+            int original_font_size_;
     };
 }
 #endif
