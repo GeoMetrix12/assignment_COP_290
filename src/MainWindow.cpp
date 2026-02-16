@@ -5,29 +5,22 @@
 #include <QFileDialog>
 #include <QColorDialog>
 #include <QMessageBox>
-#include <QStyle> // For standard icons
+#include <QStyle> 
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), canvas_(new editor::Canvas(this)) {
-    
     setCentralWidget(canvas_);
     resize(1200, 800);
     setWindowTitle("Vector Graphics Editor - IIT Delhi COP290");
-
     createActions();
     createMenus();
-    createToolbar();
-    
-    // Initialize Status Bar
+    createToolbar();  
     statusBar()->showMessage("Ready");
 }
 
-MainWindow::~MainWindow() {
-    // Canvas is a child widget, so it deletes automatically
-}
+MainWindow::~MainWindow() {}
 
 void MainWindow::createActions() {
-    // --- FILE ACTIONS ---
     actionNew = new QAction(style()->standardIcon(QStyle::SP_FileIcon), "&New", this);
     actionNew->setShortcut(QKeySequence::New);
     connect(actionNew, &QAction::triggered, canvas_, &editor::Canvas::clearCanvas);
@@ -48,7 +41,6 @@ void MainWindow::createActions() {
     actionExit->setShortcut(QKeySequence::Quit);
     connect(actionExit, &QAction::triggered, this, &QWidget::close);
 
-    // --- EDIT ACTIONS ---
     actionUndo = new QAction(style()->standardIcon(QStyle::SP_ArrowBack), "&Undo", this);
     actionUndo->setShortcut(QKeySequence::Undo);
     connect(actionUndo, &QAction::triggered, canvas_, &editor::Canvas::undo);
@@ -69,7 +61,6 @@ void MainWindow::createActions() {
     actionPaste->setShortcut(QKeySequence::Paste);
     connect(actionPaste, &QAction::triggered, canvas_, &editor::Canvas::paste);
 
-    // --- TOOL ACTIONS (Mutually Exclusive) ---
     toolGroup = new QActionGroup(this);
 
     auto createTool = [&](const QString& name, editor::ToolType type, const QString& key) {
@@ -85,7 +76,6 @@ void MainWindow::createActions() {
         return act;
     };
 
-    // Note: You can load custom icons here later using QIcon(":/path/to/icon.png")
     actionSelect   = createTool("Select", editor::ToolType::SELECTION, "V");
     actionLine     = createTool("Line", editor::ToolType::LINE, "L");
     actionRect     = createTool("Rect", editor::ToolType::RECTANGLE, "R");
@@ -95,7 +85,7 @@ void MainWindow::createActions() {
     actionFreehand = createTool("Pencil", editor::ToolType::FREEHAND, "P");
     actionText     = createTool("Text", editor::ToolType::TEXT, "T");
 
-    actionSelect->setChecked(true); // Default tool
+    actionSelect->setChecked(true); 
 }
 
 void MainWindow::createMenus() {
@@ -132,18 +122,15 @@ void MainWindow::createToolbar() {
     toolbar->setMovable(false);
     toolbar->setIconSize(QSize(18, 18));
 
-    // File
     toolbar->addAction(actionNew);
     toolbar->addAction(actionOpen);
     toolbar->addAction(actionSave);
     toolbar->addSeparator();
 
-    // Undo/Redo
     toolbar->addAction(actionUndo);
     toolbar->addAction(actionRedo);
     toolbar->addSeparator();
 
-    // Tools
     toolbar->addAction(actionSelect);
     toolbar->addSeparator();
     toolbar->addAction(actionLine);
@@ -156,9 +143,6 @@ void MainWindow::createToolbar() {
     
     toolbar->addSeparator();
 
-    // --- Properties Widgets ---
-    
-    // Stroke Width Spinbox
     toolbar->addWidget(new QLabel(" Width: ", this));
     strokeWidthSpinBox = new QSpinBox(this);
     strokeWidthSpinBox->setRange(1, 20);
@@ -169,20 +153,18 @@ void MainWindow::createToolbar() {
 
     toolbar->addWidget(new QLabel(" Font: ", this));
     fontSizeSpinBox = new QSpinBox(this);
-    fontSizeSpinBox->setRange(6, 100); // Reasonable font range
-    fontSizeSpinBox->setValue(12);     // Default
+    fontSizeSpinBox->setRange(6, 100); 
+    fontSizeSpinBox->setValue(12);  
     connect(fontSizeSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), canvas_, &editor::Canvas::setFontSize);
     toolbar->addWidget(fontSizeSpinBox);
     toolbar->addSeparator();
     
-    // Stroke Color Button
     strokeColorBtn = new QToolButton(this);
-    strokeColorBtn->setText("Stroke"); // If icon is missing, text will show
+    strokeColorBtn->setText("Stroke"); 
     strokeColorBtn->setStyleSheet("background-color: black; color: white; border: 1px solid gray; padding: 2px;");
     connect(strokeColorBtn, &QToolButton::clicked, this, &MainWindow::pickStrokeColor);
     toolbar->addWidget(strokeColorBtn);
 
-    // Fill Color Button
     fillColorBtn = new QToolButton(this);
     fillColorBtn->setText(" Fill ");
     fillColorBtn->setStyleSheet("background-color: white; color: black; border: 1px solid gray; padding: 2px;");
@@ -190,45 +172,26 @@ void MainWindow::createToolbar() {
     toolbar->addWidget(fillColorBtn);
 
     connect(canvas_, &editor::Canvas::selectionChanged, [this](editor::GraphicsObject* shape) {
-        // 1. Block signals to prevent feedback loops (UI updating Canvas updating UI)
         strokeWidthSpinBox->blockSignals(true);
         fontSizeSpinBox->blockSignals(true);
 
         if (!shape) {
-            // --- CASE: NOTHING SELECTED (Reset to Default Tools) ---
             strokeWidthSpinBox->setEnabled(true);
             fontSizeSpinBox->setEnabled(true);
-            
-            // Optional: You could reset to default values here if you wanted
-            // strokeWidthSpinBox->setValue(2); 
-            // fontSizeSpinBox->setValue(12);
         } 
         else if (auto* text = dynamic_cast<editor::Text*>(shape)) {
-            // --- CASE: TEXT SELECTED ---
-            // Enable Font Size and update it
             fontSizeSpinBox->setEnabled(true);
             fontSizeSpinBox->setValue(text->getFontSize());
-
-            // Disable Stroke Width (so it doesn't apply stroke logic to text)
             strokeWidthSpinBox->setEnabled(false); 
         } 
         else {
-            // --- CASE: SHAPE SELECTED (Rect, Circle, etc.) ---
-            // Enable Stroke Width and update it
             strokeWidthSpinBox->setEnabled(true);
             strokeWidthSpinBox->setValue(shape->getStrokeWidth());
-
-            // Disable Font Size (Shapes don't use font size)
             fontSizeSpinBox->setEnabled(false);
         }
-
-        // 2. Unblock signals so user can interact again
         strokeWidthSpinBox->blockSignals(false);
         fontSizeSpinBox->blockSignals(false);
     });}
-
-// --- Implementation of Slots ---
-
 void MainWindow::openFile() {
     QString fileName = QFileDialog::getOpenFileName(this, "Open SVG", "", "SVG Files (*.svg);;All Files (*)");
     if (!fileName.isEmpty()) {
@@ -265,9 +228,7 @@ void MainWindow::pickStrokeColor() {
     QColor color = QColorDialog::getColor(Qt::black, this, "Select Stroke Color");
     if (color.isValid()) {
         canvas_->setStrokeColor(color);
-        // Update button visual
         strokeColorBtn->setStyleSheet(QString("background-color: %1; border: 1px solid gray;").arg(color.name()));
-        // Ensure text is readable against background
         strokeColorBtn->setStyleSheet(strokeColorBtn->styleSheet() + 
             QString("color: %1;").arg(color.lightness() > 128 ? "black" : "white"));
     }
@@ -284,20 +245,14 @@ void MainWindow::pickFillColor() {
 }
 
 void MainWindow::updatePropertyUI(int width, int fontSize, const QColor& stroke, const QColor& fill) {
-    // 1. Block signals to prevent infinite loops
-    // (We don't want the spinbox to tell the canvas to change the shape 
-    // just because we updated the spinbox visual)
     if(strokeWidthSpinBox) strokeWidthSpinBox->blockSignals(true);
     if(fontSizeSpinBox) fontSizeSpinBox->blockSignals(true);
     
-    // 2. Update the Values
     if(strokeWidthSpinBox) strokeWidthSpinBox->setValue(width);
     if(fontSizeSpinBox) fontSizeSpinBox->setValue(fontSize);
     
-    // 3. Update Color Button Visuals (Optional, but good for UX)
     if(strokeColorBtn) {
         strokeColorBtn->setStyleSheet(QString("background-color: %1; border: 1px solid gray;").arg(stroke.name()));
-        // maintain readable text color
         strokeColorBtn->setStyleSheet(strokeColorBtn->styleSheet() + 
             QString("color: %1;").arg(stroke.lightness() > 128 ? "black" : "white"));
     }
@@ -307,7 +262,6 @@ void MainWindow::updatePropertyUI(int width, int fontSize, const QColor& stroke,
             QString("color: %1;").arg(fill.lightness() > 128 ? "black" : "white"));
     }
 
-    // 4. Unblock signals so user interaction works again
     if(strokeWidthSpinBox) strokeWidthSpinBox->blockSignals(false);
     if(fontSizeSpinBox) fontSizeSpinBox->blockSignals(false);
 }
