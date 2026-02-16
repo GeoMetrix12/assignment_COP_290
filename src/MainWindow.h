@@ -31,7 +31,7 @@ private:
     void createActions();   // Initialize QActions
     void createMenus();     // Add actions to Menu Bar
     void createToolbar();   // Add actions to Tool Bar
-
+    void updatePropertyUI(int width, int fontSize, const QColor& stroke, const QColor& fill);
     editor::Canvas* canvas_;
     
     // -- Actions --
@@ -62,6 +62,7 @@ private:
 
     // Toolbar Widgets
     QSpinBox* strokeWidthSpinBox;
+    QSpinBox* fontSizeSpinBox;
     QToolButton* strokeColorBtn;
     QToolButton* fillColorBtn;
 };

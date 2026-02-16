@@ -27,9 +27,12 @@ namespace editor {
             void setStrokeWidth(int width);
             void setStrokeColor(const QColor& color);
             void setFillColor(const QColor& color);
+            void setFontSize(int size);
             bool hasFile() const {return !current_file_.isEmpty();}
             QString getCurrentFile() const { return current_file_; }
             void setCurrentFile(const QString& filename) { current_file_ = filename; }
+        signals: 
+            void selectionChanged(editor::GraphicsObject* shape);        
         protected :
             void paintEvent(QPaintEvent* event) override;
             void mousePressEvent(QMouseEvent* event) override;
@@ -45,6 +48,7 @@ namespace editor {
             bool is_changing_radius_ = false;
             std::unique_ptr<GraphicsObject> clipboard_shape_ = nullptr;
             void pushCommand(std::unique_ptr<Command> cmd);
+            void notifySelectionUpdate();
             std::stack<std::unique_ptr<Command>> undo_stack_;
             std::stack<std::unique_ptr<Command>> redo_stack_;
             std::unique_ptr<GraphicsObject> temp_shape_ = nullptr;
@@ -58,6 +62,7 @@ namespace editor {
             QRectF original_box_;
             QPointF original_p1_, original_p2_;
             int original_font_size_;
+            int current_font_size_ = 12;
     };
 }
 #endif

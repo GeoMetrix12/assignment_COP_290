@@ -16,6 +16,7 @@ namespace editor{
     Canvas::Canvas(QWidget* parent) : QWidget(parent){
         // last_pos_ = QPoint(0, 0);
         // drag_last_pos_ = QPoint(0, 0);
+        setFocusPolicy(Qt::StrongFocus);
         QPalette pal = palette();
         pal.setColor(QPalette::Base, Qt::darkGray);
         setPalette(pal);  
@@ -28,6 +29,7 @@ namespace editor{
         selected_shape_ = nullptr;
         temp_shape_ = nullptr;
         current_file_ = "";
+        current_font_size_ = 12;
     }
     void Canvas::addShape(std::unique_ptr<GraphicsObject> shape) {
         auto cmd = std::make_unique<AddShapeCommand>(shapes_, std::move(shape));
@@ -136,6 +138,7 @@ namespace editor{
             cmd->undo();
             redo_stack_.push(std::move(cmd));
             selected_shape_ = nullptr;
+            notifySelectionUpdate();
             update();
             qDebug() << "Undo performed.";
         }
@@ -147,6 +150,7 @@ namespace editor{
             cmd->execute();
             undo_stack_.push(std::move(cmd));
             selected_shape_ = nullptr;
+            notifySelectionUpdate();
             update();
             qDebug() << "Redo performed.";
         }
@@ -180,6 +184,22 @@ namespace editor{
         }
         current_fill_color_ = color;
         update();
+    }
+    void Canvas::setFontSize(int size){
+        if(selected_shape_){
+            auto* text = dynamic_cast<Text*>(selected_shape_);
+            if(text){
+                int oldSize = text->getFontSize();
+                auto cmd = std::make_unique<PropertyChangeCommand>(
+                    selected_shape_, PropertyChangeCommand::PropertyType::FONT_SIZE, oldSize, size);
+                pushCommand(std::move(cmd));
+            }
+        }
+        current_font_size_ = size;
+        update();
+    }
+    void Canvas::notifySelectionUpdate(){
+        emit selectionChanged(selected_shape_);
     }
     void Canvas::mousePressEvent(QMouseEvent* event){
         last_pos_ = event->pos();
@@ -246,7 +266,7 @@ namespace editor{
             bool check;
             QString text = QInputDialog::getText(this, "Text Tool", "Enter text:", QLineEdit::Normal, "", &check);
             if(check && !text.isEmpty()){
-                addShape(std::make_unique<Text>(last_pos_.x(), last_pos_.y(), text, 12, current_color_.name()));
+                addShape(std::make_unique<Text>(last_pos_.x(), last_pos_.y(), text, current_font_size_, current_color_.name()));
             }
             return;
         }
@@ -293,6 +313,7 @@ namespace editor{
             selected_shape_ = nullptr;
             is_dragging_ = true;
         }
+        notifySelectionUpdate();
         update();
     }
     void Canvas::mouseMoveEvent(QMouseEvent* event){
@@ -375,6 +396,7 @@ namespace editor{
                     hexagon->setRadius(r);
                 }
             }
+            notifySelectionUpdate();
             update();
             return;
         }

@@ -167,6 +167,14 @@ void MainWindow::createToolbar() {
     toolbar->addWidget(strokeWidthSpinBox);
     toolbar->addSeparator();
 
+    toolbar->addWidget(new QLabel(" Font: ", this));
+    fontSizeSpinBox = new QSpinBox(this);
+    fontSizeSpinBox->setRange(6, 100); // Reasonable font range
+    fontSizeSpinBox->setValue(12);     // Default
+    connect(fontSizeSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), canvas_, &editor::Canvas::setFontSize);
+    toolbar->addWidget(fontSizeSpinBox);
+    toolbar->addSeparator();
+    
     // Stroke Color Button
     strokeColorBtn = new QToolButton(this);
     strokeColorBtn->setText("Stroke"); // If icon is missing, text will show
@@ -180,7 +188,44 @@ void MainWindow::createToolbar() {
     fillColorBtn->setStyleSheet("background-color: white; color: black; border: 1px solid gray; padding: 2px;");
     connect(fillColorBtn, &QToolButton::clicked, this, &MainWindow::pickFillColor);
     toolbar->addWidget(fillColorBtn);
-}
+
+    connect(canvas_, &editor::Canvas::selectionChanged, [this](editor::GraphicsObject* shape) {
+        // 1. Block signals to prevent feedback loops (UI updating Canvas updating UI)
+        strokeWidthSpinBox->blockSignals(true);
+        fontSizeSpinBox->blockSignals(true);
+
+        if (!shape) {
+            // --- CASE: NOTHING SELECTED (Reset to Default Tools) ---
+            strokeWidthSpinBox->setEnabled(true);
+            fontSizeSpinBox->setEnabled(true);
+            
+            // Optional: You could reset to default values here if you wanted
+            // strokeWidthSpinBox->setValue(2); 
+            // fontSizeSpinBox->setValue(12);
+        } 
+        else if (auto* text = dynamic_cast<editor::Text*>(shape)) {
+            // --- CASE: TEXT SELECTED ---
+            // Enable Font Size and update it
+            fontSizeSpinBox->setEnabled(true);
+            fontSizeSpinBox->setValue(text->getFontSize());
+
+            // Disable Stroke Width (so it doesn't apply stroke logic to text)
+            strokeWidthSpinBox->setEnabled(false); 
+        } 
+        else {
+            // --- CASE: SHAPE SELECTED (Rect, Circle, etc.) ---
+            // Enable Stroke Width and update it
+            strokeWidthSpinBox->setEnabled(true);
+            strokeWidthSpinBox->setValue(shape->getStrokeWidth());
+
+            // Disable Font Size (Shapes don't use font size)
+            fontSizeSpinBox->setEnabled(false);
+        }
+
+        // 2. Unblock signals so user can interact again
+        strokeWidthSpinBox->blockSignals(false);
+        fontSizeSpinBox->blockSignals(false);
+    });}
 
 // --- Implementation of Slots ---
 
@@ -236,4 +281,33 @@ void MainWindow::pickFillColor() {
         fillColorBtn->setStyleSheet(fillColorBtn->styleSheet() + 
             QString("color: %1;").arg(color.lightness() > 128 ? "black" : "white"));
     }
+}
+
+void MainWindow::updatePropertyUI(int width, int fontSize, const QColor& stroke, const QColor& fill) {
+    // 1. Block signals to prevent infinite loops
+    // (We don't want the spinbox to tell the canvas to change the shape 
+    // just because we updated the spinbox visual)
+    if(strokeWidthSpinBox) strokeWidthSpinBox->blockSignals(true);
+    if(fontSizeSpinBox) fontSizeSpinBox->blockSignals(true);
+    
+    // 2. Update the Values
+    if(strokeWidthSpinBox) strokeWidthSpinBox->setValue(width);
+    if(fontSizeSpinBox) fontSizeSpinBox->setValue(fontSize);
+    
+    // 3. Update Color Button Visuals (Optional, but good for UX)
+    if(strokeColorBtn) {
+        strokeColorBtn->setStyleSheet(QString("background-color: %1; border: 1px solid gray;").arg(stroke.name()));
+        // maintain readable text color
+        strokeColorBtn->setStyleSheet(strokeColorBtn->styleSheet() + 
+            QString("color: %1;").arg(stroke.lightness() > 128 ? "black" : "white"));
+    }
+    if(fillColorBtn) {
+        fillColorBtn->setStyleSheet(QString("background-color: %1; border: 1px solid gray;").arg(fill.name()));
+        fillColorBtn->setStyleSheet(fillColorBtn->styleSheet() + 
+            QString("color: %1;").arg(fill.lightness() > 128 ? "black" : "white"));
+    }
+
+    // 4. Unblock signals so user interaction works again
+    if(strokeWidthSpinBox) strokeWidthSpinBox->blockSignals(false);
+    if(fontSizeSpinBox) fontSizeSpinBox->blockSignals(false);
 }

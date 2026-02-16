@@ -28,7 +28,7 @@ namespace editor{
         return std::make_unique<Text>(*this);
     }
     void Text::setStrokeWidth(int width){
-        font_size_ = 8 + width * 2;
+        stroke_width_ = width;
     }
     void Text::setStrokeColor(const QString& color){
         color_ = color;
