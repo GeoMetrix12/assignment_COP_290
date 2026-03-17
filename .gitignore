@@ -6,6 +6,7 @@ cmake_install.cmake
 Makefile
 compile_commands.json
 .DS_Store
+.vscode/
 # Qt Autogen stuff
 .qt/
 *_autogen/
